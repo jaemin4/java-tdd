@@ -59,6 +59,29 @@ public class UserPointFrontService {
                 Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
     }
 
+    public RestResult useUserPoint(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
+
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+
+        if (resultUserPoint.point() < amount) {
+            throw new UserPointRuntimeException("잔액이 부족합니다.");
+        }
+
+        long updatedPoint = resultUserPoint.point() - amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
+
+        return new RestResult("200", "User Use Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+
+
+    }
+
+
 
 
 }
