@@ -4,6 +4,7 @@ package io.hhplus.tdd;
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.exception.UserPointRuntimeException;
+import io.hhplus.tdd.model.entity.PointHistory;
 import io.hhplus.tdd.model.entity.UserPoint;
 import io.hhplus.tdd.model.result.RestResult;
 import io.hhplus.tdd.service.front.UserPointFrontService;
@@ -14,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.sql.ResultSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,6 +77,11 @@ public class UserPointFrontServiceTest {
             userPointFrontService.chargeUserPoint(3L, amount);
         });
     }
+
+
+
+
+
     @DisplayName("동시성 테스트 환경 제공")
     void concurrencyCommTest(long id, long amount,Integer threadCount,String methodName) throws InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
@@ -84,22 +92,42 @@ public class UserPointFrontServiceTest {
                 try {
                     // 톰캣 멀티스레드 환경에서 동시에 호출
                     switch (methodName){
-                        case "chargeUserPoint" -> userPointFrontService.chargeUserPoint(id,amount);
+                        case "chargeUserPoint" -> {
+                            userPointFrontService.chargeUserPoint(id,amount);
+                        }
                     }
                 } finally {
                     countDownLatch.countDown();
                 }
             });
         }
+
+
         countDownLatch.await();
 
+        //userPoint
         RestResult updatedResult = userPointFrontService.getPointById(id);
         UserPoint updatedUserPoint = (UserPoint)updatedResult.getData().get("data");
+
+        //pointHistory
+        RestResult updatedResult2 = userPointFrontService.RetrieveUserHistoryById(id);
+        List<PointHistory> updatedPointHistory = (List<PointHistory>) updatedResult2.getData().get("data");
 
         long updatedPoint = updatedUserPoint.point();
         long expectedPoint = threadCount * amount;
 
+        long updatedSize = updatedPointHistory.size();
+        long expectedSize = threadCount;
+
+
+        //모든 history가 정상 저장되었는지 확인
+        for(PointHistory pointHistory : updatedPointHistory){
+            assertEquals(pointHistory.userId(),id);
+            assertEquals(pointHistory.amount(),amount);
+        }
+
         assertEquals(expectedPoint,updatedPoint,"모든 충전이 정상 처리되었는지 확인");
+        assertEquals(updatedSize,expectedSize,"모든 history가 정상 저장 되었는지 확인");
     }
 
 
