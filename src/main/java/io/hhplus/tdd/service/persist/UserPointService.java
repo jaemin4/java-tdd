@@ -16,6 +16,11 @@ public class UserPointService {
         return userPointRepository.selectById(id);
     }
 
+    public UserPoint saveOrUpdateUserPoint(long id, long amount){
+        UserPoint resultUserPoint = userPointRepository.insertOrUpdate(id,amount);
 
+        log.info("UserPoint Save : {}",resultUserPoint);
+        return resultUserPoint;
+    }
 
 }
