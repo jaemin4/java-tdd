@@ -1,6 +1,5 @@
 package io.hhplus.tdd.controller;
 
-import io.hhplus.tdd.model.entity.UserPoint;
 import io.hhplus.tdd.model.result.RestResult;
 import io.hhplus.tdd.service.front.UserPointFrontService;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +24,6 @@ public class PointController {
 
         return userPointFrontService.getPointById(id);
     }
-
-
     /**
      * TODO - 특정 유저의 포인트 충전/이용 내역을 조회하는 기능을 작성해주세요.
      */
@@ -36,7 +33,6 @@ public class PointController {
 
         return userPointFrontService.RetrieveUserHistoryById(id);
     }
-
     /**
      * TODO - 특정 유저의 포인트를 충전하는 기능을 작성해주세요.
      */
