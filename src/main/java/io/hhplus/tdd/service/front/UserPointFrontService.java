@@ -10,6 +10,7 @@ import io.hhplus.tdd.service.persist.UserPointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -19,6 +20,7 @@ public class UserPointFrontService {
 
     private final UserPointService userPointService;
     private final PointHistoryService pointHistoryService;
+    private final Map<Long, Lock> userLocks = new ConcurrentHashMap<>();
 
 
     public RestResult getPointById(Long id) {
@@ -45,38 +47,54 @@ public class UserPointFrontService {
         if (amount == null) {
             throw new UserPointRuntimeException("Validation error");
         }
-        UserPoint resultUserPoint = userPointService.getPointById(id);
-        if (resultUserPoint == null) {
-            throw new UserPointRuntimeException("존재하지 않는 사용자 입니다.");
+
+        Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock());
+        lock.lock();
+        try{
+            UserPoint resultUserPoint = userPointService.getPointById(id);
+
+            long updatedPoint = resultUserPoint.point() + amount;
+            UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+            PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
+
+            return new RestResult("200", "User Charge Success",
+                    Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+        }catch (Exception e){
+            throw new UserPointRuntimeException("충전 중 예외 발생: " + e.getMessage());
+        }finally {
+            lock.unlock();
         }
 
-        long updatedPoint = resultUserPoint.point() + amount;
-        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
-
-        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
-
-        return new RestResult("200", "User Charge Success",
-                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
     }
 
     public RestResult useUserPoint(Long id, Long amount) {
         if (amount == null) {
             throw new UserPointRuntimeException("Validation error");
         }
+        Lock lock = userLocks.computeIfAbsent(id,k-> new ReentrantLock());
+        lock.lock();
 
-        UserPoint resultUserPoint = userPointService.getPointById(id);
+        try{
+            UserPoint resultUserPoint = userPointService.getPointById(id);
 
-        if (resultUserPoint.point() < amount) {
-            throw new UserPointRuntimeException("잔액이 부족합니다.");
+            if (resultUserPoint.point() < amount) {
+                throw new UserPointRuntimeException("잔액이 부족합니다.");
+            }
+
+            long updatedPoint = resultUserPoint.point() - amount;
+            UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+            PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
+
+            return new RestResult("200", "User Use Success",
+                    Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+        }catch (Exception e){
+            throw new UserPointRuntimeException("충전 중 예외 발생: " + e.getMessage());
+        }finally {
+            lock.unlock();
         }
 
-        long updatedPoint = resultUserPoint.point() - amount;
-        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
-
-        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
-
-        return new RestResult("200", "User Use Success",
-                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
 
 
     }
