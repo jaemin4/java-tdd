@@ -13,10 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.sql.ResultSet;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -68,6 +65,16 @@ public class UserPointFrontServiceTest {
     }
 
 
+    //useUserPoint 메서드일 경우 @BeforeEach UserPoint(1L,5000L) 테스팅 사용 고정
+    @DisplayName("[UserPointFrontService]/useUserPoint : " +
+            "특정 유저의 포인트 사용 정상적으로 적용되는지 | SUCCESS")
+    @Test
+    void useUserPoint() throws InterruptedException {
+        concurrencyCommTest(1L,100L,20,"useUserPoint");
+    }
+
+
+
     @DisplayName("[UserPointFrontService]/getPointByIdTest : " +
             "amount 값이 없을때 exception이 정상적으로 던져지는지 | FAIL")
     @Test
@@ -82,6 +89,7 @@ public class UserPointFrontServiceTest {
 
 
 
+    //useUserPoint 메서드일 경우 @BeforeEach UserPoint(1L,5000L) 테스팅 사용 고정
     @DisplayName("동시성 테스트 환경 제공")
     void concurrencyCommTest(long id, long amount,Integer threadCount,String methodName) throws InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
@@ -95,6 +103,10 @@ public class UserPointFrontServiceTest {
                         case "chargeUserPoint" -> {
                             userPointFrontService.chargeUserPoint(id,amount);
                         }
+                        case "useUserPoint" -> {
+                            userPointFrontService.useUserPoint(id,amount);
+                        }
+
                     }
                 } finally {
                     countDownLatch.countDown();
@@ -116,6 +128,11 @@ public class UserPointFrontServiceTest {
         long updatedPoint = updatedUserPoint.point();
         long expectedPoint = threadCount * amount;
 
+        if(methodName.equals("useUserPoint")){
+            expectedPoint = 5000L - (threadCount * amount);
+        }
+
+
         long updatedSize = updatedPointHistory.size();
         long expectedSize = threadCount;
 
@@ -125,9 +142,14 @@ public class UserPointFrontServiceTest {
             assertEquals(pointHistory.userId(),id);
             assertEquals(pointHistory.amount(),amount);
         }
+        if(methodName.equals("chargeUserPoint")){
+            assertEquals(expectedPoint,updatedPoint,"모든 충전이 정상 처리되었는지 확인");
+        } else if (methodName.equals("useUserPoint")) {
+            assertEquals(expectedPoint,updatedPoint,"모든 사용이 정상 처리되었는지 확인");
+        }
 
-        assertEquals(expectedPoint,updatedPoint,"모든 충전이 정상 처리되었는지 확인");
         assertEquals(updatedSize,expectedSize,"모든 history가 정상 저장 되었는지 확인");
+
     }
 
 
