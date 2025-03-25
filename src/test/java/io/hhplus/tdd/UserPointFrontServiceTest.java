@@ -3,6 +3,7 @@ package io.hhplus.tdd;
 
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
+import io.hhplus.tdd.exception.UserPointRuntimeException;
 import io.hhplus.tdd.model.entity.UserPoint;
 import io.hhplus.tdd.model.result.RestResult;
 import io.hhplus.tdd.service.front.UserPointFrontService;
@@ -18,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 public class UserPointFrontServiceTest {
@@ -67,9 +69,10 @@ public class UserPointFrontServiceTest {
             "amount 값이 없을때 exception이 정상적으로 던져지는지 | FAIL")
     @Test
     void chargeUserPointException()  {
-
-
-
+        Long amount = null;
+        assertThrows(UserPointRuntimeException.class, () -> {
+            userPointFrontService.chargeUserPoint(3L, amount);
+        });
     }
     @DisplayName("동시성 테스트 환경 제공")
     void concurrencyCommTest(long id, long amount,Integer threadCount,String methodName) throws InterruptedException {
