@@ -6,7 +6,12 @@ public record UserPoint(
         long updateMillis
 ) {
 
+
     public static UserPoint empty(long id) {
         return new UserPoint(id, 0, System.currentTimeMillis());
     }
+    public UserPoint(long id, long point) {
+        this(id, point, System.currentTimeMillis());
+    }
+
 }
