@@ -25,15 +25,6 @@ public class UserPointFrontService {
 
     public RestResult getPointById(Long id) {
         UserPoint resultUserPoint = userPointService.getPointById(id);
-
-    /*
-    TODO - 1.checkPoint
-        id validation 포함해서 사용자가 없으면 생성하는 구조이기 때문에 의미 없을지도?
-    */
-        if (resultUserPoint == null) {
-            throw new UserPointRuntimeException("사용자를 찾을 수 없습니다.");
-        }
-
         return new RestResult("200", "Retrieve success", Map.of("data", resultUserPoint));
     }
 
@@ -74,7 +65,6 @@ public class UserPointFrontService {
         }
         Lock lock = userLocks.computeIfAbsent(id,k-> new ReentrantLock());
         lock.lock();
-
         try{
             UserPoint resultUserPoint = userPointService.getPointById(id);
 
