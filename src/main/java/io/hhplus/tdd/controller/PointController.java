@@ -2,27 +2,32 @@ package io.hhplus.tdd.controller;
 
 import io.hhplus.tdd.model.entity.PointHistory;
 import io.hhplus.tdd.model.entity.UserPoint;
+import io.hhplus.tdd.model.result.RestResult;
+import io.hhplus.tdd.service.front.UserPointFrontService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/point")
+@RequiredArgsConstructor
 public class PointController {
 
     private static final Logger log = LoggerFactory.getLogger(PointController.class);
+    private final UserPointFrontService userPointFrontService;
 
     /**
      * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
      */
     @GetMapping("{id}")
-    public UserPoint point(
-            @PathVariable long id
-    ) {
-        return new UserPoint(0, 0, 0);
+    public RestResult point(@PathVariable long id) {
+        log.info("/{} : {}", id, id);
+
+        return userPointFrontService.getPointById(id);
     }
+
 
     /**
      * TODO - 특정 유저의 포인트 충전/이용 내역을 조회하는 기능을 작성해주세요.
