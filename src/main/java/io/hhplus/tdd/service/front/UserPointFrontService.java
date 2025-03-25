@@ -39,7 +39,7 @@ public class UserPointFrontService {
             throw new UserPointRuntimeException("Validation error");
         }
 
-        Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock());
+        Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock(true));
         lock.lock();
         try{
             UserPoint resultUserPoint = userPointService.getPointById(id);
@@ -63,7 +63,7 @@ public class UserPointFrontService {
         if (amount == null) {
             throw new UserPointRuntimeException("Validation error");
         }
-        Lock lock = userLocks.computeIfAbsent(id,k-> new ReentrantLock());
+        Lock lock = userLocks.computeIfAbsent(id,k-> new ReentrantLock(true));
         lock.lock();
         try{
             UserPoint resultUserPoint = userPointService.getPointById(id);
