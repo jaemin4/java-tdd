@@ -38,8 +38,7 @@ public class UserPointFrontServiceTest {
         userPointTable.insertOrUpdate(1L,5000L);
     }
 
-    @DisplayName("[UserPointFrontService]/getPointByIdTest : " +
-            "특정 유저의 포인트 조회(History) 정상적으로 출력되는지 | SUCCESS")
+    @DisplayName("특정 유저의 userPoint정보가 정상적으로 출력된다.")
     @Test
     void getPointByIdTest(){
         //given
@@ -57,26 +56,27 @@ public class UserPointFrontServiceTest {
     }
 
 
-    @DisplayName("[UserPointFrontService]/chargeUserPoint : " +
-            "특정 유저의 포인트 충전 정상적으로 적용되는지 | SUCCESS")
+    @DisplayName("동시에 5개의 스레드가 chargeUserPoint 메서드에 접근했을때 정상적으로 충전이 완료되는지")
     @Test
     void chargeUserPoint() throws InterruptedException {
-        concurrencyCommTest(2L,100L,3,"chargeUserPoint");
+        concurrencyCommTest(2L,100L,5,"chargeUserPoint");
     }
 
+    @DisplayName("잔액이 부족할때 예외가 정상적으로 던져진다.")
+    @Test
+    void useUserPointException() {
+        assertThrows(UserPointRuntimeException.class, () -> {
+            userPointFrontService.useUserPoint(1L,6000L);
+        });
 
+    }
     //useUserPoint 메서드일 경우 @BeforeEach UserPoint(1L,5000L) 테스팅 사용 고정
-    @DisplayName("[UserPointFrontService]/useUserPoint : " +
-            "특정 유저의 포인트 사용 정상적으로 적용되는지 | SUCCESS")
+    @DisplayName("동시에 10개의 스레드가 chargeUserPoint 메서드에 접근했을때 정상적으로 사용이 완료되는지")
     @Test
     void useUserPoint() throws InterruptedException {
-        concurrencyCommTest(1L,100L,20,"useUserPoint");
+        concurrencyCommTest(1L,100L,10,"useUserPoint");
     }
-
-
-
-    @DisplayName("[UserPointFrontService]/getPointByIdTest : " +
-            "amount 값이 없을때 exception이 정상적으로 던져지는지 | FAIL")
+    @DisplayName("chargeUserPoint 메서드에서 amount가 null값일 때 예외가 던져진다.")
     @Test
     void chargeUserPointException()  {
         Long amount = null;
@@ -85,9 +85,15 @@ public class UserPointFrontServiceTest {
         });
     }
 
+    @DisplayName("useUserPoint 메서드에서 amount가 null값일 때 예외가 던져진다.")
+    @Test
+    void useUserPointNullException(){
+        Long amount = null;
+        assertThrows(UserPointRuntimeException.class, () -> {
+            userPointFrontService.useUserPoint(4L,amount);
+        });
 
-
-
+    }
 
     //useUserPoint 메서드일 경우 @BeforeEach UserPoint(1L,5000L) 테스팅 사용 고정
     @DisplayName("동시성 테스트 환경 제공")
