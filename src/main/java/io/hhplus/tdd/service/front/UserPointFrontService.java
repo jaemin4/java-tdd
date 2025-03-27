@@ -73,7 +73,7 @@ public class UserPointFrontService {
         Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock(true));
         boolean isLocked = false;
         try{
-            isLocked = lock.tryLock(1, TimeUnit.SECONDS);
+            isLocked = lock.tryLock(5, TimeUnit.SECONDS);
             if (!isLocked) {
                 throw new UserPointRuntimeException("락 획득 실패: 충전중 예외발생");
             }
