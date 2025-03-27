@@ -1,6 +1,7 @@
 package io.hhplus.tdd;
 
 
+import io.hhplus.tdd.constants.TransactionType;
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.exception.UserPointRuntimeException;
@@ -8,12 +9,15 @@ import io.hhplus.tdd.model.entity.PointHistory;
 import io.hhplus.tdd.model.entity.UserPoint;
 import io.hhplus.tdd.model.result.RestResult;
 import io.hhplus.tdd.service.front.UserPointFrontService;
+import io.hhplus.tdd.service.persist.PointHistoryService;
+import io.hhplus.tdd.service.persist.UserPointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +30,12 @@ public class UserPointFrontServiceTest {
 
     @Autowired
     UserPointFrontService userPointFrontService;
+
+    @Autowired
+    UserPointService userPointService;
+
+    @Autowired
+    PointHistoryService pointHistoryService;
 
     @Autowired
     UserPointTable userPointTable;
@@ -55,6 +65,25 @@ public class UserPointFrontServiceTest {
         assertEquals(5000L,resultData.point());
     }
 
+    @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
+    public RestResult TestCharge(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
+
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+        long updatedPoint = resultUserPoint.point() + amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
+
+        return new RestResult("200", "User Charge Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+
+    }
+
+
+
 
     @DisplayName("동시에 5개의 스레드가 chargeUserPoint 메서드에 접근했을때 정상적으로 충전이 완료되는지")
     @Test
@@ -76,6 +105,14 @@ public class UserPointFrontServiceTest {
     void useUserPoint() throws InterruptedException {
         concurrencyCommTest(1L,100L,10,"useUserPoint");
     }
+
+
+    @DisplayName("chargeUserPoint 5초안에 락을 점유못할시 예외가 던져지는지")
+    @Test
+    void ChargeDeadLockTest(){
+
+    }
+
     @DisplayName("chargeUserPoint 메서드에서 amount가 null값일 때 예외가 던져진다.")
     @Test
     void chargeUserPointException()  {
