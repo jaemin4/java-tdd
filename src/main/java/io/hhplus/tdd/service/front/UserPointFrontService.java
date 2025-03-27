@@ -36,7 +36,7 @@ public class UserPointFrontService {
     }
 
     public RestResult chargeUserPoint(Long id, Long amount) {
-        if (amount == null || amount < 0) {
+        if (amount == null || amount <= 0) {
             throw new UserPointRuntimeException("충전금액이 올바르지 않습니다.");
         }
 
@@ -67,7 +67,7 @@ public class UserPointFrontService {
     }
 
     public RestResult useUserPoint(Long id, Long amount) {
-        if (amount == null || amount < 0) {
+        if (amount == null || amount <= 0) {
             throw new UserPointRuntimeException("사용금액이 올바르지 않습니다.");
         }
 
