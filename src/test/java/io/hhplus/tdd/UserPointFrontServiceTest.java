@@ -77,46 +77,19 @@ public class UserPointFrontServiceTest {
     }
 
 
-    @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
-    public RestResult TestCharge(Long id, Long amount) {
-        if (amount == null) {
-            throw new UserPointRuntimeException("Validation error");
-        }
-
-        UserPoint resultUserPoint = userPointService.getPointById(id);
-        long updatedPoint = resultUserPoint.point() + amount;
-        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
-
-        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
-
-        return new RestResult("200", "User Charge Success",
-                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
-    }
-
-    @DisplayName("[UserPointFrontService] useUserPoint - 동시성 제어 실패 케이스")
-    public RestResult TestUse(Long id, Long amount) {
-        if (amount == null) {
-            throw new UserPointRuntimeException("Validation error");
-        }
-
-        UserPoint resultUserPoint = userPointService.getPointById(id);
-        long updatedPoint = resultUserPoint.point() - amount;
-        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
-
-        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
-
-        return new RestResult("200", "User Use Success",
-                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
-
-    }
-
-
-
 
     @DisplayName("동시에 5개의 스레드가 chargeUserPoint 메서드에 접근했을때 정상적으로 충전이 완료되는지")
     @Test
     void chargeUserPoint() throws InterruptedException {
         concurrencyCommTest(2L,100L,5,"chargeUserPoint");
+    }
+
+    @DisplayName("1초내 락 획득 실패시 예외가 던져지는지")
+    @Test
+    void chargeDeadLockTest(){
+
+
+
     }
 
     @DisplayName("잔액이 부족할때 예외가 정상적으로 던져진다.")
@@ -223,16 +196,48 @@ public class UserPointFrontServiceTest {
         }
 
         if(methodName.equals("TestUse") || methodName.equals("TestCharge")){
-            assertEquals(updatedSize,expectedSize,"모든 history가 정상 저장 되었는지 확인");
-        } else{
             assertNotEquals(updatedSize,expectedSize,"동시성 실패 케이스");
+        } else{
+            assertEquals(updatedSize,expectedSize,"모든 history가 정상 저장 되었는지 확인");
+
         }
 
     }
 
 
 
+    @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
+    public RestResult TestCharge(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
 
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+        long updatedPoint = resultUserPoint.point() + amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
+
+        return new RestResult("200", "User Charge Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+    }
+
+    @DisplayName("[UserPointFrontService] useUserPoint - 동시성 제어 실패 케이스")
+    public RestResult TestUse(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
+
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+        long updatedPoint = resultUserPoint.point() - amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
+
+        return new RestResult("200", "User Use Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+
+    }
 
 
 }
