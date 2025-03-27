@@ -36,15 +36,16 @@ public class UserPointFrontService {
     }
 
     public RestResult chargeUserPoint(Long id, Long amount) {
-        if (amount == null) {
-            throw new UserPointRuntimeException("Validation error");
+        if (amount == null || amount < 0) {
+            throw new UserPointRuntimeException("충전금액이 올바르지 않습니다.");
         }
+
 
         Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock(true));
         boolean isLocked = false;
 
         try{
-            isLocked = lock.tryLock(1, TimeUnit.SECONDS);
+            isLocked = lock.tryLock(5, TimeUnit.SECONDS);
             if (!isLocked) {
                 throw new UserPointRuntimeException("락 획득 실패: 사용중 예외발생");
             }
@@ -66,8 +67,8 @@ public class UserPointFrontService {
     }
 
     public RestResult useUserPoint(Long id, Long amount) {
-        if (amount == null) {
-            throw new UserPointRuntimeException("Validation error");
+        if (amount == null || amount < 0) {
+            throw new UserPointRuntimeException("사용금액이 올바르지 않습니다.");
         }
 
         Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock(true));
