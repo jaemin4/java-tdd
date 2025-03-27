@@ -22,8 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 public class UserPointFrontServiceTest {
@@ -68,8 +67,15 @@ public class UserPointFrontServiceTest {
     @Test
     @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 충전 테스트 FAIL")
     public void chargeUserPointConcurrencyTestFail() throws InterruptedException{
-        concurrencyCommTest(2L,100L,3,"TestCharge");
+        concurrencyCommTest(41L,100L,10,"TestCharge");
     }
+
+    @Test
+    @DisplayName("[UserPointFrontService] useUserPoint - 동시성 사용 테스트 FAIL")
+    public void useUserPointConcurrencyTestFail() throws InterruptedException{
+        concurrencyCommTest(1L,100L,5,"TestUse");
+    }
+
 
     @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
     public RestResult TestCharge(Long id, Long amount) {
@@ -171,7 +177,7 @@ public class UserPointFrontServiceTest {
                         case "useUserPoint" -> {
                             userPointFrontService.useUserPoint(id,amount);
                         }
-                        case "TestUser" -> TestCharge(id,amount);
+                        case "TestCharge" -> TestCharge(id,amount);
                         case "TestUse" -> TestUse(id,amount);
 
                     }
@@ -195,7 +201,7 @@ public class UserPointFrontServiceTest {
         long updatedPoint = updatedUserPoint.point();
         long expectedPoint = threadCount * amount;
 
-        if(methodName.equals("useUserPoint")){
+        if(methodName.equals("useUserPoint") || methodName.equals("TestUse")){
             expectedPoint = 5000L - (threadCount * amount);
         }
 
@@ -209,13 +215,18 @@ public class UserPointFrontServiceTest {
             assertEquals(pointHistory.userId(),id);
             assertEquals(pointHistory.amount(),amount);
         }
-        if(methodName.equals("chargeUserPoint")){
-            assertEquals(expectedPoint,updatedPoint,"모든 충전이 정상 처리되었는지 확인");
-        } else if (methodName.equals("useUserPoint")) {
-            assertEquals(expectedPoint,updatedPoint,"모든 사용이 정상 처리되었는지 확인");
+        switch (methodName) {
+            case "chargeUserPoint" -> assertEquals(expectedPoint, updatedPoint, "모든 충전이 정상 처리되었는지 확인");
+            case "useUserPoint" -> assertEquals(expectedPoint, updatedPoint, "모든 사용이 정상 처리되었는지 확인");
+            case "TestCharge" -> assertNotEquals(expectedPoint, updatedPoint, "충전 동시성 실패 케이스");
+            case "TestUse" -> assertNotEquals(expectedPoint, updatedPoint, "사용 동시성 실패 케이스");
         }
 
-        assertEquals(updatedSize,expectedSize,"모든 history가 정상 저장 되었는지 확인");
+        if(methodName.equals("TestUse") || methodName.equals("TestCharge")){
+            assertEquals(updatedSize,expectedSize,"모든 history가 정상 저장 되었는지 확인");
+        } else{
+            assertNotEquals(updatedSize,expectedSize,"동시성 실패 케이스");
+        }
 
     }
 
