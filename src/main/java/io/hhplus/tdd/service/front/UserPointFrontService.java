@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -40,8 +41,13 @@ public class UserPointFrontService {
         }
 
         Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock(true));
-        lock.lock();
+        boolean isLocked = false;
+
         try{
+            isLocked = lock.tryLock(1, TimeUnit.SECONDS);
+            if (!isLocked) {
+                throw new UserPointRuntimeException("락 획득 실패: 사용중 예외발생");
+            }
             UserPoint resultUserPoint = userPointService.getPointById(id);
 
             long updatedPoint = resultUserPoint.point() + amount;
@@ -63,9 +69,14 @@ public class UserPointFrontService {
         if (amount == null) {
             throw new UserPointRuntimeException("Validation error");
         }
-        Lock lock = userLocks.computeIfAbsent(id,k-> new ReentrantLock(true));
-        lock.lock();
+
+        Lock lock = userLocks.computeIfAbsent(id, k -> new ReentrantLock(true));
+        boolean isLocked = false;
         try{
+            isLocked = lock.tryLock(1, TimeUnit.SECONDS);
+            if (!isLocked) {
+                throw new UserPointRuntimeException("락 획득 실패: 충전중 예외발생");
+            }
             UserPoint resultUserPoint = userPointService.getPointById(id);
 
             if (resultUserPoint.point() < amount) {
