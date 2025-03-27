@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -84,12 +85,36 @@ public class UserPointFrontServiceTest {
         concurrencyCommTest(2L,100L,5,"chargeUserPoint");
     }
 
-    @DisplayName("1초내 락 획득 실패시 예외가 던져지는지")
+    @DisplayName("충전 금액이 0일때 예외가 발생하는지")
     @Test
-    void chargeDeadLockTest(){
+    void chargeUserPointAmountZero(){
+         assertThrows(UserPointRuntimeException.class, () ->{
+             userPointFrontService.chargeUserPoint(3L,0L);
+        }) ;
+    }
 
+    @DisplayName("충전 금액이 0 이하 일때 예외가 발생하는지")
+    @Test
+    void chargeUserPointAmountMinus(){
+        assertThrows(UserPointRuntimeException.class, () ->{
+            userPointFrontService.chargeUserPoint(3L,-99L);
+        }) ;
+    }
 
+    @DisplayName("충전 금액이 0일때 예외가 발생하는지")
+    @Test
+    void useUserPointAmountZero(){
+        assertThrows(UserPointRuntimeException.class, () ->{
+            userPointFrontService.useUserPoint(3L,0L);
+        }) ;
+    }
 
+    @DisplayName("충전 금액이 0 이하 일때 예외가 발생하는지")
+    @Test
+    void useUserPointAmountMinus(){
+        assertThrows(UserPointRuntimeException.class, () ->{
+            userPointFrontService.useUserPoint(3L,-99L);
+        }) ;
     }
 
     @DisplayName("잔액이 부족할때 예외가 정상적으로 던져진다.")
@@ -105,13 +130,6 @@ public class UserPointFrontServiceTest {
     @Test
     void useUserPoint() throws InterruptedException {
         concurrencyCommTest(1L,100L,10,"useUserPoint");
-    }
-
-
-    @DisplayName("chargeUserPoint 5초안에 락을 점유못할시 예외가 던져지는지")
-    @Test
-    void ChargeDeadLockTest(){
-
     }
 
     @DisplayName("chargeUserPoint 메서드에서 amount가 null값일 때 예외가 던져진다.")
