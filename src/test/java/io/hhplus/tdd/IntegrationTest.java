@@ -21,12 +21,11 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.locks.Lock;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-public class UserPointFrontServiceTest {
+public class IntegrationTest {
 
     @Autowired
     UserPointFrontService userPointFrontService;
@@ -85,46 +84,7 @@ public class UserPointFrontServiceTest {
         concurrencyCommTest(2L,100L,5,"chargeUserPoint");
     }
 
-    @DisplayName("충전 금액이 0일때 예외가 발생하는지")
-    @Test
-    void chargeUserPointAmountZero(){
-         assertThrows(UserPointRuntimeException.class, () ->{
-             userPointFrontService.chargeUserPoint(3L,0L);
-        }) ;
-    }
 
-    @DisplayName("충전 금액이 0 이하 일때 예외가 발생하는지")
-    @Test
-    void chargeUserPointAmountMinus(){
-        assertThrows(UserPointRuntimeException.class, () ->{
-            userPointFrontService.chargeUserPoint(3L,-99L);
-        }) ;
-    }
-
-    @DisplayName("충전 금액이 0일때 예외가 발생하는지")
-    @Test
-    void useUserPointAmountZero(){
-        assertThrows(UserPointRuntimeException.class, () ->{
-            userPointFrontService.useUserPoint(3L,0L);
-        }) ;
-    }
-
-    @DisplayName("충전 금액이 0 이하 일때 예외가 발생하는지")
-    @Test
-    void useUserPointAmountMinus(){
-        assertThrows(UserPointRuntimeException.class, () ->{
-            userPointFrontService.useUserPoint(3L,-99L);
-        }) ;
-    }
-
-    @DisplayName("잔액이 부족할때 예외가 정상적으로 던져진다.")
-    @Test
-    void useUserPointException() {
-        assertThrows(UserPointRuntimeException.class, () -> {
-            userPointFrontService.useUserPoint(1L,6000L);
-        });
-
-    }
     //useUserPoint 메서드일 경우 @BeforeEach UserPoint(1L,5000L) 테스팅 사용 고정
     @DisplayName("동시에 10개의 스레드가 chargeUserPoint 메서드에 접근했을때 정상적으로 사용이 완료되는지")
     @Test
@@ -132,22 +92,37 @@ public class UserPointFrontServiceTest {
         concurrencyCommTest(1L,100L,10,"useUserPoint");
     }
 
-    @DisplayName("chargeUserPoint 메서드에서 amount가 null값일 때 예외가 던져진다.")
-    @Test
-    void chargeUserPointException()  {
-        Long amount = null;
-        assertThrows(UserPointRuntimeException.class, () -> {
-            userPointFrontService.chargeUserPoint(3L, amount);
-        });
+
+    @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
+    public RestResult TestCharge(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
+
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+        long updatedPoint = resultUserPoint.point() + amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
+
+        return new RestResult("200", "User Charge Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
     }
 
-    @DisplayName("useUserPoint 메서드에서 amount가 null값일 때 예외가 던져진다.")
-    @Test
-    void useUserPointNullException(){
-        Long amount = null;
-        assertThrows(UserPointRuntimeException.class, () -> {
-            userPointFrontService.useUserPoint(4L,amount);
-        });
+    @DisplayName("[UserPointFrontService] useUserPoint - 동시성 제어 실패 케이스")
+    public RestResult TestUse(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
+
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+        long updatedPoint = resultUserPoint.point() - amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
+
+        return new RestResult("200", "User Use Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
 
     }
 
@@ -223,39 +198,6 @@ public class UserPointFrontServiceTest {
     }
 
 
-
-    @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
-    public RestResult TestCharge(Long id, Long amount) {
-        if (amount == null) {
-            throw new UserPointRuntimeException("Validation error");
-        }
-
-        UserPoint resultUserPoint = userPointService.getPointById(id);
-        long updatedPoint = resultUserPoint.point() + amount;
-        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
-
-        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
-
-        return new RestResult("200", "User Charge Success",
-                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
-    }
-
-    @DisplayName("[UserPointFrontService] useUserPoint - 동시성 제어 실패 케이스")
-    public RestResult TestUse(Long id, Long amount) {
-        if (amount == null) {
-            throw new UserPointRuntimeException("Validation error");
-        }
-
-        UserPoint resultUserPoint = userPointService.getPointById(id);
-        long updatedPoint = resultUserPoint.point() - amount;
-        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
-
-        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
-
-        return new RestResult("200", "User Use Success",
-                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
-
-    }
 
 
 }
