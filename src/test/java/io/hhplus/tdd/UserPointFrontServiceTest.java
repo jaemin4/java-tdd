@@ -65,6 +65,12 @@ public class UserPointFrontServiceTest {
         assertEquals(5000L,resultData.point());
     }
 
+    @Test
+    @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 충전 테스트 FAIL")
+    public void chargeUserPointConcurrencyTestFail() throws InterruptedException{
+        concurrencyCommTest(2L,100L,3,"TestCharge");
+    }
+
     @DisplayName("[UserPointFrontService] chargeUserPoint - 동시성 제어 실패 케이스")
     public RestResult TestCharge(Long id, Long amount) {
         if (amount == null) {
@@ -78,6 +84,22 @@ public class UserPointFrontServiceTest {
         PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.CHARGE);
 
         return new RestResult("200", "User Charge Success",
+                Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
+    }
+
+    @DisplayName("[UserPointFrontService] useUserPoint - 동시성 제어 실패 케이스")
+    public RestResult TestUse(Long id, Long amount) {
+        if (amount == null) {
+            throw new UserPointRuntimeException("Validation error");
+        }
+
+        UserPoint resultUserPoint = userPointService.getPointById(id);
+        long updatedPoint = resultUserPoint.point() - amount;
+        UserPoint updatedUserPoint = userPointService.saveOrUpdateUserPoint(id, updatedPoint);
+
+        PointHistory updatedPointHistory = pointHistoryService.insertHistory(id, amount, TransactionType.USE);
+
+        return new RestResult("200", "User Use Success",
                 Map.of("updatedUserPoint", updatedUserPoint, "updatedPointHistory", updatedPointHistory));
 
     }
@@ -149,6 +171,8 @@ public class UserPointFrontServiceTest {
                         case "useUserPoint" -> {
                             userPointFrontService.useUserPoint(id,amount);
                         }
+                        case "TestUser" -> TestCharge(id,amount);
+                        case "TestUse" -> TestUse(id,amount);
 
                     }
                 } finally {
